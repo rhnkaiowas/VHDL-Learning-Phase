@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Product Version: Vivado v2020.2 (64-bit)              -->
+<!-- Product Version: Vivado v2020.2.2 (64-bit)              -->
 <!--                                                         -->
-<!-- Copyright 1986-2020 Xilinx, Inc. All Rights Reserved.   -->
+<!-- Copyright 1986-2021 Xilinx, Inc. All Rights Reserved.   -->
 
 <Project Version="7" Minor="54" Path="D:/VHDL Vivado Codes/VHDL-Working-Place/SPI Master V1/SPI Master V1.xpr">
   <DefaultLaunch Dir="$PRUNDIR"/>
@@ -81,7 +81,7 @@
       </File>
       <Config>
         <Option Name="DesignMode" Val="RTL"/>
-        <Option Name="TopModule" Val="SPI_Master_VHDL"/>
+        <Option Name="TopModule" Val="spi_master"/>
         <Option Name="TopAutoSet" Val="TRUE"/>
       </Config>
     </FileSet>
