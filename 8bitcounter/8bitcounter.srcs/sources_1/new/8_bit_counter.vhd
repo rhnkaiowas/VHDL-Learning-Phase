@@ -33,14 +33,12 @@ use ieee.std_logic_unsigned.all;
 --use UNISIM.VComponents.all;
 
 entity eightbitcounter is
-    Port (  clk,reset : in STD_LOGIC;
-            first_4bit_flag : out STD_LOGIC;
-            second_4bit_flag : out STD_LOGIC);
+    Port (  clk,reset : in STD_LOGIC);
 end eightbitcounter;
 
 architecture Behavioral of eightbitcounter is
-signal first_4bit: std_logic_vector(3 downto 0);
-signal second_4bit: std_logic_vector(3 downto 0);
+signal first_4bit: std_logic_vector(3 downto 0) := (others => '0');
+signal second_4bit: std_logic_vector(3 downto 0) := (others => '0');
 signal first_4bit_progress: std_logic := '1';
 signal second_4bit_progress: std_logic := '0';
 begin

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="eightbitcounter_behav.wdb" id="1">
+         <top_modules>
+            <top_module name="eightbitcounter" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <zoom_setting>
+      <ZoomStartTime time="0fs"></ZoomStartTime>
+      <ZoomEndTime time="14fs"></ZoomEndTime>
+      <Cursor1Time time="1000fs"></Cursor1Time>
+   </zoom_setting>
+   <column_width_setting>
+      <NameColumnWidth column_width="533"></NameColumnWidth>
+      <ValueColumnWidth column_width="251"></ValueColumnWidth>
+   </column_width_setting>
+   <WVObjectSize size="6" />
+   <wvobject fp_name="/eightbitcounter/clk" type="logic">
+      <obj_property name="ElementShortName">clk</obj_property>
+      <obj_property name="ObjectShortName">clk</obj_property>
+   </wvobject>
+   <wvobject fp_name="/eightbitcounter/reset" type="logic">
+      <obj_property name="ElementShortName">reset</obj_property>
+      <obj_property name="ObjectShortName">reset</obj_property>
+   </wvobject>
+   <wvobject fp_name="/eightbitcounter/first_4bit" type="array">
+      <obj_property name="ElementShortName">first_4bit[3:0]</obj_property>
+      <obj_property name="ObjectShortName">first_4bit[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/eightbitcounter/second_4bit" type="array">
+      <obj_property name="ElementShortName">second_4bit[3:0]</obj_property>
+      <obj_property name="ObjectShortName">second_4bit[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/eightbitcounter/first_4bit_progress" type="logic">
+      <obj_property name="ElementShortName">first_4bit_progress</obj_property>
+      <obj_property name="ObjectShortName">first_4bit_progress</obj_property>
+   </wvobject>
+   <wvobject fp_name="/eightbitcounter/second_4bit_progress" type="logic">
+      <obj_property name="ElementShortName">second_4bit_progress</obj_property>
+      <obj_property name="ObjectShortName">second_4bit_progress</obj_property>
+   </wvobject>
+</wave_config>

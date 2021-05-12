@@ -1,0 +1,12 @@
+#-----------------------------------------------------------
+# Vivado v2020.2.2 (64-bit)
+# SW Build 3118627 on Tue Feb  9 05:14:06 MST 2021
+# IP Build 3115676 on Tue Feb  9 10:48:11 MST 2021
+# Start of session at: Wed May 12 14:58:28 2021
+# Process ID: 6936
+# Current directory: D:/VHDL Vivado Codes/VHDL-Working-Place/General_Training/General_Training.runs/synth_1
+# Command line: vivado.exe -log Main_4Bit.vds -product Vivado -mode batch -messageDb vivado.pb -notrace -source Main_4Bit.tcl
+# Log file: D:/VHDL Vivado Codes/VHDL-Working-Place/General_Training/General_Training.runs/synth_1/Main_4Bit.vds
+# Journal file: D:/VHDL Vivado Codes/VHDL-Working-Place/General_Training/General_Training.runs/synth_1\vivado.jou
+#-----------------------------------------------------------
+source Main_4Bit.tcl -notrace
