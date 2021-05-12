@@ -35,7 +35,7 @@ use ieee.std_logic_unsigned.all;
 entity Main_4Bit is
     Port ( clk : in STD_LOGIC := '0';
            rst : in STD_LOGIC := '0';
-           en  : in STD_LOGIC := '1';
+           en  : in STD_LOGIC := '0';
            count_limit: in std_logic_vector(7 downto 0) := "00101101");
 end Main_4Bit;
 

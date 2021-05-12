@@ -1,7 +1,7 @@
 Copyright 1986-2021 Xilinx, Inc. All Rights Reserved.
 -------------------------------------------------------------------------------------------------------------
 | Tool Version : Vivado v.2020.2.2 (win64) Build 3118627 Tue Feb  9 05:14:06 MST 2021
-| Date         : Wed May 12 14:58:54 2021
+| Date         : Wed May 12 15:05:34 2021
 | Host         : DESKTOP-TLK0F43 running 64-bit major release  (build 9200)
 | Command      : report_utilization -file Main_4Bit_utilization_synth.rpt -pb Main_4Bit_utilization_synth.pb
 | Design       : Main_4Bit
