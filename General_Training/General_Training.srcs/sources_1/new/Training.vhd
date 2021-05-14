@@ -53,14 +53,16 @@ count_limit_MS_four <= count_limit(7 downto 4);
         four_bit_counter  <= "0000";
         count_of_4bits <= "0000";
         
-        elsif (rising_edge(clk) and en= '1' ) then
+        elsif (rising_edge(clk)) then
+            if (en= '1') then
                 four_bit_counter <= four_bit_counter + '1';
                 if (four_bit_counter = "1111") then
                     count_of_4bits <= count_of_4bits + '1';
                 elsif (count_of_4bits = count_limit_MS_four and four_bit_counter = count_limit_LS_four) then
                 four_bit_counter  <= "0000";
                 count_of_4bits <= "0000";
-                end if;   
+                end if;
+            end if;   
         end if;
         end process;
 

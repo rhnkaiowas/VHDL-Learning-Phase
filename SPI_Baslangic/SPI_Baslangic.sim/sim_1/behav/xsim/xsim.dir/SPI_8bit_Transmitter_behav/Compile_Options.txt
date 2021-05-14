@@ -1,0 +1,1 @@
+-wto "286bb56e7ee0411bac8d40f4b0351c41" --incr --debug "typical" --relax --mt "2" -L "xil_defaultlib" -L "secureip" --snapshot "SPI_8bit_Transmitter_behav" "xil_defaultlib.SPI_8bit_Transmitter" -log "elaborate.log" 

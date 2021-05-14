@@ -1,6 +1,6 @@
-Vivado Simulator 2020.2
-Copyright 1986-1999, 2001-2020 Xilinx, Inc. All Rights Reserved.
-Running: C:/Xilinx/Vivado/2020.2/bin/unwrapped/win64.o/xelab.exe -wto 119346394d1c4f0286b6761e093ef66d --incr --debug typical --relax --mt 2 -L xil_defaultlib -L secureip --snapshot test_SPI_Master_VHDL_behav xil_defaultlib.test_SPI_Master_VHDL -log elaborate.log 
+Vivado Simulator v2020.2.2
+Copyright 1986-1999, 2001-2021 Xilinx, Inc. All Rights Reserved.
+Running: C:/Xilinx/Vivado/2020.2/bin/unwrapped/win64.o/xelab.exe -wto 119346394d1c4f0286b6761e093ef66d --incr --debug typical --relax --mt 2 -L xil_defaultlib -L secureip --snapshot spi_master_behav xil_defaultlib.spi_master -log elaborate.log 
 Using 2 slave threads.
 Starting static elaboration
 Completed static elaboration
@@ -10,6 +10,7 @@ Time Resolution for simulation is 1ps
 Compiling package std.standard
 Compiling package std.textio
 Compiling package ieee.std_logic_1164
-Compiling package ieee.numeric_std
-Compiling architecture behavioral of entity xil_defaultlib.test_spi_master_vhdl
-Built simulation snapshot test_SPI_Master_VHDL_behav
+Compiling package ieee.std_logic_arith
+Compiling package ieee.std_logic_unsigned
+Compiling architecture behavioral of entity xil_defaultlib.spi_master
+Built simulation snapshot spi_master_behav

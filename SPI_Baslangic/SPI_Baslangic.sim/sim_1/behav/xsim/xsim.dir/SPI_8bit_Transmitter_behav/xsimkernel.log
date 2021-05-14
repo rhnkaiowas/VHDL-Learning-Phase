@@ -1,0 +1,7 @@
+Running: xsim.dir/SPI_8bit_Transmitter_behav/xsimk.exe -simmode gui -wdb SPI_8bit_Transmitter_behav.wdb -simrunnum 0 -socket 50049
+Design successfully loaded
+Design Loading Memory Usage: 5812 KB (Peak: 5812 KB)
+Design Loading CPU Usage: 0 ms
+Simulation completed
+Simulation Memory Usage: 6352 KB (Peak: 6352 KB)
+Simulation CPU Usage: 328 ms
