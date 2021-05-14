@@ -2,8 +2,8 @@
 # Webtalk v2020.2.2 (64-bit)
 # SW Build 3118627 on Tue Feb  9 05:14:06 MST 2021
 # IP Build 3115676 on Tue Feb  9 10:48:11 MST 2021
-# Start of session at: Fri May 14 20:42:22 2021
-# Process ID: 7924
+# Start of session at: Fri May 14 20:44:50 2021
+# Process ID: 8804
 # Current directory: D:/VHDL Vivado Codes/VHDL-Working-Place/SPI Master V1/SPI Master V1.sim/sim_1/behav/xsim
 # Command line: wbtcv.exe -mode batch -source D:/VHDL Vivado Codes/VHDL-Working-Place/SPI Master V1/SPI Master V1.sim/sim_1/behav/xsim/xsim.dir/spi_master_behav/webtalk/xsim_webtalk.tcl -notrace
 # Log file: D:/VHDL Vivado Codes/VHDL-Working-Place/SPI Master V1/SPI Master V1.sim/sim_1/behav/xsim/webtalk.log
@@ -14,4 +14,4 @@ invalid command name "%"
     while executing
 "% Total    % Received % Xferd  Average Speed   Time    Time     Time  Current"
     (file "D:/VHDL" line 1)
-INFO: [Common 17-206] Exiting Webtalk at Fri May 14 20:42:22 2021...
+INFO: [Common 17-206] Exiting Webtalk at Fri May 14 20:44:50 2021...
