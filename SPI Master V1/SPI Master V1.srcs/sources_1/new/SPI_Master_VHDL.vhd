@@ -1,82 +1,104 @@
 --------------------------------------------------------------------------------
--- DESCRIPTION:		
---    This module implements master part of SPI communication interface and can be used to any SPI slave IC.
- 
---    In order to read from a slave IC, mosi_data_i input signal should be assigned to desired value and en_i signal should be high. 
---    In order to write to a slave IC, en_i input signal should be high. 
---    data_ready_o output signal has the logic high value for one clock cycle as read or/and write operation finished. miso_data_o output signal
--- has the data read from slave IC. 
---    In order to read or/and write consecutively, en_i signal should be kept high. To end the transaction, en_i input signal should be assigned to zero
--- when data_ready_o output signal gets high.
+-- AUTHOR:			Erhan ERGÜN
+-- CREATED:			15.05.2021
+--
 --------------------------------------------------------------------------------
--- Limitation/Assumption: In order to use this module properly, the ratio of  (c_clkfreq / c_sclkFreq) should be equal to 8 or more. 
---    For higher SCLK frequencies are possible but more elaboration is needed.
--- Notes: c_cpol and c_cpha parameters are clock polarity and clock phase, respectively.
+-- DESCRIPTION:		
+--This module implements master part of SPI communication interface and can be used to any SPI slave IC.
+
+--You can configure bit count of MOSI and MISO data with mosi_data_length and miso_data_length integers. Up to 16 bits tested.
+
+--You can configure system clock and desired SPI clock with system_clk_freq and SPI_clk_freq.
+
+--SPI module enabled with SPI_en_i logic '1'.
+
+--Inorder to send data from MOSI;
+--first set data to mosi_data_i and  set SPI_cpol and SPI_cpha
+--then set SPI_en_i to logic '1'.
+
+--miso_data_ready_o output signal has the logic high value for one system_clk_freq clock cycle as read or/and write operation finished. 
+
+--miso_data_o output signal has the data read from slave IC. 
+
+--In order to finish read or/and write cycle, SPI_en_i signal should be kept high.
+
+--When miso_data_ready_o output signal gets high this means transaction has finished. 
+--This means You can get data from miso_data_o and after got data SPI_en_i input signal should be assigned to logic '0'.
+
+--SPI_cpol and SPI_cpha parameters are clock polarity and clock phase.
+
+--SPI Mode 	CPOL 	CPHA 	Clock Polarity in Idle State 			Clock Phase Used to Sample and/or Shift the Data
+--	0 		 0 		 0 		  		Logic low 					Data sampled on rising edge and shifted out on the falling edge
+--	1 		 0 		 1 		  		Logic low 					Data sampled on the falling edge and shifted out on the rising edge
+--	2 	 	 1 		 0 		  		Logic high 					Data sampled on the falling edge and shifted out on the rising edge
+--	3 		 1 		 1 		  		Logic high 					Data sampled on the rising edge and shifted out on the falling edge
+
 --------------------------------------------------------------------------------
 -- VHDL DIALECT: VHDL '93
---
 --------------------------------------------------------------------------------
 -- PROJECT 	: General purpose
 -- BOARD 	: General purpose
--- ENTITY 	: spi_master
+-- ENTITY 	: SPI_Master_VHDL
 --------------------------------------------------------------------
--- FILE 	: spi_master.vhd
+-- FILE 	: SPI_Master_VHDL.vhd
 --------------------------------------------------------------------------------
 -- REVISION HISTORY:
 -- REVISION  DATE 		 AUTHOR        COMMENT
 -- --------  ----------  ------------  -----------
--- 1.0	     19.12.2019	 M.B.AYKENAR   INITIAL REVISION
+-- 1.0	     15.05.2021	 Erhan Ergün   V1
 --------------------------------------------------------------------------------
- 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.STD_LOGIC_UNSIGNED.ALL;
  
-entity spi_master is
+entity SPI_Master_VHDL is
 generic (
-	c_clkfreq 		: integer := 100_000_000;
-	c_sclkfreq 		: integer := 1_000_000;
-	c_cpol			: std_logic := '0';
-	c_cpha			: std_logic := '0'
+	system_clk_freq 	: integer := 100_000_000;
+	SPI_clk_freq 		: integer := 1_000_000;
+	
+	SPI_cpol			: std_logic := '0';
+	SPI_cpha			: std_logic := '0';
+	
+	mosi_data_length	: integer := 8;
+	miso_data_length	: integer := 8
 );
-Port ( 
-	clk_i 			: in  STD_LOGIC;
-	en_i 			: in  STD_LOGIC;
-	mosi_data_i 	: in  STD_LOGIC_VECTOR (7 downto 0);
-	miso_data_o 	: out STD_LOGIC_VECTOR (7 downto 0);
-	data_ready_o 	: out STD_LOGIC;
-	cs_o 			: out STD_LOGIC;
-	sclk_o 			: out STD_LOGIC;
-	mosi_o 			: out STD_LOGIC;
-	miso_i 			: in  STD_LOGIC
+Port ( 	
+	system_clk_i 		: in  STD_LOGIC;
+	SPI_en_i 			: in  STD_LOGIC;
+	
+	mosi_data_i 		: in  STD_LOGIC_VECTOR (mosi_data_length-1 downto 0);
+	miso_data_o 		: out STD_LOGIC_VECTOR (miso_data_length-1 downto 0);
+	miso_data_ready_o 	: out STD_LOGIC;
+	
+	cs_o 				: out STD_LOGIC;
+	SPI_clk_o 			: out STD_LOGIC;
+	
+	mosi_o 				: out STD_LOGIC;
+	miso_i 				: in  STD_LOGIC
 );
-end spi_master;
- 
-architecture Behavioral of spi_master is
- 
---------------------------------------------------------------------------------
+end SPI_Master_VHDL;
+ architecture Behavioral of SPI_Master_VHDL is
+ --------------------------------------------------------------------------------
 -- CONSTANTS
-constant c_edgecntrlimdiv2	: integer := c_clkfreq/(c_sclkfreq*2);
- 
---------------------------------------------------------------------------------
+constant c_system_clk_edgecntr_target	: integer := system_clk_freq/(SPI_clk_freq*2);
+ --------------------------------------------------------------------------------
 -- INTERNAL SIGNALS
-signal write_reg	: std_logic_vector (7 downto 0) 	:= (others => '0');	
-signal read_reg		: std_logic_vector (7 downto 0) 	:= (others => '0');	
+signal mosi_buffer			: std_logic_vector (mosi_data_length-1 downto 0) 	:= (others => '0');	
+signal miso_buffer			: std_logic_vector (miso_data_length-1 downto 0) 	:= (others => '0');
  
-signal sclk_en		: std_logic := '0';
-signal sclk			: std_logic := '0';
-signal sclk_prev	: std_logic := '0';
-signal sclk_rise	: std_logic := '0';
-signal sclk_fall	: std_logic := '0';
+signal SPI_clk_en			: std_logic := '0';
+signal SPI_clk				: std_logic := '0';
+signal SPI_clk_prev			: std_logic := '0';
+signal SPI_clk_rise			: std_logic := '0';
+signal SPI_clk_fall			: std_logic := '0';
  
-signal pol_phase	: std_logic_vector (1 downto 0) := (others => '0');
-signal mosi_en		: std_logic := '0';
-signal miso_en		: std_logic := '0';
-signal once         : std_logic := '0';
+signal SPI_pol_phase		: std_logic_vector (1 downto 0) := (others => '0');
+signal mosi_en				: std_logic := '0';
+signal miso_en				: std_logic := '0';
+signal miso_got_first_bit   : std_logic := '0';
  
-signal edgecntr		: integer range 0 to c_edgecntrlimdiv2 := 0;
- 
-signal cntr 		: integer range 0 to 15 := 0;
+signal system_clk_edgecntr	: integer range 0 to c_system_clk_edgecntr_target := 0;
+signal bit_counter 			: integer range 0 to 15 := 0;
  
 --------------------------------------------------------------------------------
 -- STATE DEFINITIONS
@@ -87,223 +109,208 @@ signal state : states := S_IDLE;
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
 begin
- 
-pol_phase <= c_cpol & c_cpha;
- 
---------------------------------------------------------------------------------
---    SAMPLE_EN process assigns mosi_en and miso_en internal signals to sclk_fall or sclk_rise in a combinational logic according to 
--- generic parameters of c_cpol and c_cpha via pol_phase signal.
-P_SAMPLE_EN : process (pol_phase, sclk_fall, sclk_rise) begin
- 
-	case pol_phase is
- 
-		when "00" =>
- 
-			mosi_en <= sclk_fall;
-			miso_en	<= sclk_rise;
- 
+ SPI_pol_phase <= SPI_cpol & SPI_cpha;
+ --------------------------------------------------------------------------------
+-- SAMPLE_EN process assigns mosi_en and miso_en internal signals to SPI_clk_fall or SPI_clk_rise in a combinational logic according to 
+-- generic parameters of SPI_cpol and SPI_cpha via SPI_pol_phase signal.
+P_SAMPLE_EN : process (SPI_pol_phase, SPI_clk_fall, SPI_clk_rise) begin
+ 	case SPI_pol_phase is
+ 		when "00" =>
+ 			mosi_en <= SPI_clk_fall;
+			miso_en	<= SPI_clk_rise;
+ 		
 		when "01" =>
- 
-			mosi_en <= sclk_rise;
-			miso_en	<= sclk_fall;		
- 
+ 			mosi_en <= SPI_clk_rise;
+			miso_en	<= SPI_clk_fall;		
+ 		
 		when "10" =>
- 
-			mosi_en <= sclk_rise;
-			miso_en	<= sclk_fall;			
- 
+ 			mosi_en <= SPI_clk_rise;
+			miso_en	<= SPI_clk_fall;			
+ 		
 		when "11" =>
- 
-			mosi_en <= sclk_fall;
-			miso_en	<= sclk_rise;	
- 
-		when others =>
- 
-	end case;
- 
-end process P_SAMPLE_EN;
+ 			mosi_en <= SPI_clk_fall;
+			miso_en	<= SPI_clk_rise;	
+ 		when others =>
+ 	end case;
+ end process P_SAMPLE_EN;
  
 --------------------------------------------------------------------------------
---    RISEFALL_DETECT process assigns sclk_rise and sclk_fall signals in a combinational logic.
-P_RISEFALL_DETECT : process (sclk, sclk_prev) begin
- 
-	if (sclk = '1' and sclk_prev = '0') then
-		sclk_rise <= '1';
+--    RISEFALL_DETECT process assigns SPI_clk_rise and SPI_clk_fall signals in a combinational logic.
+P_RISEFALL_DETECT : process (SPI_clk, SPI_clk_prev) begin
+ 	if (SPI_clk = '1' and SPI_clk_prev = '0') then
+		SPI_clk_rise <= '1';
 	else
-		sclk_rise <= '0';
+		SPI_clk_rise <= '0';
 	end if;
  
-	if (sclk = '0' and sclk_prev = '1') then
-		sclk_fall <= '1';
+	if (SPI_clk = '0' and SPI_clk_prev = '1') then
+		SPI_clk_fall <= '1';
 	else
-		sclk_fall <= '0';
+		SPI_clk_fall <= '0';
 	end if;	
+ end process P_RISEFALL_DETECT;
+ --------------------------------------------------------------------------------
+--In the MAIN process S_IDLE and S_TRANSFER states are implemented. 
+--State changes from S_IDLE to S_TRANSFER when SPI_en_i input signal has the logic high value. 
+--At S_TRANSFER cycle, mosi_buffer signal is assigned to mosi_data_i input signal. 
+
+P_MAIN : process (system_clk_i) begin
+if (rising_edge(system_clk_i)) then
  
-end process P_RISEFALL_DETECT;
- 
---------------------------------------------------------------------------------
---    In the MAIN process S_IDLE and S_TRANSFER states are implemented. state changes from S_IDLE to S_TRANSFER when en_i input
--- signal has the logic high value. At that cycle, write_reg signal is assigned to mosi_data_i input signal. According to c_cpha generic 
--- parameter, the transaction operation changes slightly. This operational difference is well explained in the paper that can be found
--- in Documents folder of the SPI, which is located in SVN server.
-P_MAIN : process (clk_i) begin
-if (rising_edge(clk_i)) then
- 
-    data_ready_o <= '0';
-	sclk_prev	<= sclk;
+    miso_data_ready_o <= '0';
+	SPI_clk_prev	<= SPI_clk;
  
 	case state is
  
 --------------------------------------------------------------------------------	
 		when S_IDLE =>	
+ 			cs_o				<= '1';
+			mosi_o				<= '0';
+			miso_data_ready_o	<= '0';			
+			SPI_clk_en				<= '0';
+			bit_counter			<= 	0; 
  
-			cs_o			<= '1';
-			mosi_o			<= '0';
-			data_ready_o	<= '0';			
-			sclk_en			<= '0';
-			cntr			<= 0; 
- 
-			if (c_cpol = '0') then
-				sclk_o	<= '0';
+			if (SPI_cpol = '0') then
+				SPI_clk_o			<= '0';
 			else
-				sclk_o	<= '1';
+				SPI_clk_o			<= '1';
 			end if;	
  
-			if (en_i = '1') then
-				state		<= S_TRANSFER;
-				sclk_en		<= '1';
-				write_reg	<= mosi_data_i;
-				mosi_o		<= mosi_data_i(7);
-				read_reg	<= x"00";
+			if (SPI_en_i = '1') then
+				state			<= S_TRANSFER;
+				SPI_clk_en			<= '1';
+				mosi_buffer		<= mosi_data_i;
+				mosi_o			<= mosi_data_i(mosi_data_length-1);
+				miso_buffer		<= x"00";
 			end if;
- 
---------------------------------------------------------------------------------			
+ --------------------------------------------------------------------------------			
 		when S_TRANSFER =>		
+ 			cs_o	<= '0';
+			mosi_o	<= mosi_buffer(mosi_data_length-1);
+  
+			if (SPI_cpha = '1') then	
  
-			cs_o	<= '0';
-			mosi_o	<= write_reg(7);
- 
- 
-			if (c_cpha = '1') then	
- 
-				if (cntr = 0) then
-					sclk_o	<= sclk;
+				if (bit_counter = 0) then
+					SPI_clk_o	<= SPI_clk;
 					if (miso_en = '1') then
-						read_reg(0)				<= miso_i;
-						read_reg(7 downto 1) 	<= read_reg(6 downto 0);
-						cntr					<= cntr + 1;
-						once                    <= '1';
+						miso_buffer(0)		<= miso_i;
+						miso_buffer(miso_data_length-1 downto 1) 	<= miso_buffer(miso_data_length-2 downto 0);
+						bit_counter			<= bit_counter + 1;
+						miso_got_first_bit   	<= '1';
 					end if;				
-				elsif (cntr = 8) then
-				    if (once = '1') then
-				        data_ready_o	<= '1';
-				        once            <= '0';				       
+				
+				elsif (bit_counter = miso_data_length) then
+				    if (miso_got_first_bit = '1') then
+				        miso_data_ready_o	<= '1';
+				        miso_got_first_bit   	<= '0';				       
 				    end if;					
-					miso_data_o		<= read_reg;
+					miso_data_o		<= miso_buffer;
 					if (mosi_en = '1') then
-						if (en_i = '1') then
-							write_reg	<= mosi_data_i;
-							mosi_o		<= mosi_data_i(7);	
-							sclk_o		<= sclk;							
-							cntr		<= 0;
+						if (SPI_en_i = '1') then
+							mosi_buffer		<= mosi_data_i;
+							mosi_o			<= mosi_data_i(7);	
+							SPI_clk_o			<= SPI_clk;							
+							bit_counter		<= 0;
 						else
-							state	<= S_IDLE;
-							cs_o	<= '1';								
+							state			<= S_IDLE;
+							cs_o			<= '1';								
 						end if;	
 					end if;
-				elsif (cntr = 9) then
+				
+				elsif (bit_counter = miso_data_length+1) then
 					if (miso_en = '1') then
-						state	<= S_IDLE;
-						cs_o	<= '1';
+						state				<= S_IDLE;
+						cs_o				<= '1';
 					end if;						
+				
 				else
-					sclk_o	<= sclk;
+					SPI_clk_o	<= SPI_clk;
 					if (miso_en = '1') then
-						read_reg(0)				<= miso_i;
-						read_reg(7 downto 1) 	<= read_reg(6 downto 0);
-						cntr					<= cntr + 1;
+						miso_buffer(0)		<= miso_i;
+						miso_buffer(miso_data_length-1 downto 1) 	<= miso_buffer(miso_data_length-2 downto 0);
+						bit_counter			<= bit_counter + 1;
 					end if;
 					if (mosi_en = '1') then
-						mosi_o	<= write_reg(7);
-						write_reg(7 downto 1) 	<= write_reg(6 downto 0);
+						mosi_o				<= mosi_buffer(mosi_data_length-1);
+						mosi_buffer(mosi_data_length-1 downto 1) 	<= mosi_buffer(mosi_data_length-2 downto 0);
 					end if;
 				end if;
  
-			else	-- c_cpha = '0'
- 
-				if (cntr = 0) then
-					sclk_o	<= sclk;					
+			else	-- SPI_cpha = '0'
+ 				if (bit_counter = 0) then
+					SPI_clk_o	<= SPI_clk;					
 					if (miso_en = '1') then
-						read_reg(0)				<= miso_i;
-						read_reg(7 downto 1) 	<= read_reg(6 downto 0);
-						cntr					<= cntr + 1;
-						once                    <= '1';
+						miso_buffer(0)		<= miso_i;
+						miso_buffer(miso_data_length-1 downto 1) 	<= miso_buffer(miso_data_length-2 downto 0);
+						bit_counter			<= bit_counter + 1;
+						miso_got_first_bit       <= '1';
 					end if;
-				elsif (cntr = 8) then				
-                    if (once = '1') then
-                        data_ready_o    <= '1';
-                        once            <= '0';                       
+				
+				elsif (bit_counter = miso_data_length) then				
+                    if (miso_got_first_bit = '1') then
+                        miso_data_ready_o   <= '1';
+                        miso_got_first_bit   	<= '0';                       
                     end if;
-					miso_data_o		<= read_reg;
-					sclk_o			<= sclk;
+					miso_data_o				<= miso_buffer;
+					SPI_clk_o					<= SPI_clk;
 					if (mosi_en = '1') then
-						if (en_i = '1') then
-							write_reg	<= mosi_data_i;
-							mosi_o		<= mosi_data_i(7);		
-							cntr		<= 0;
+						if (SPI_en_i = '1') then
+							mosi_buffer		<= mosi_data_i;
+							mosi_o			<= mosi_data_i(mosi_data_length-1);		
+							bit_counter		<= 0;
 						else
-							cntr	<= cntr + 1;
+							bit_counter 	<= bit_counter + 1;
 						end if;	
 						if (miso_en = '1') then
-							state	<= S_IDLE;
-							cs_o	<= '1';							
+							state 			<= S_IDLE;
+							cs_o 			<= '1';							
 						end if;
 					end if;		
-				elsif (cntr = 9) then
+				
+				elsif (bit_counter = miso_data_length+1) then
 					if (miso_en = '1') then
-						state	<= S_IDLE;
-						cs_o	<= '1';
+						state				<= S_IDLE;
+						cs_o				<= '1';
 					end if;
+				
 				else
-					sclk_o	<= sclk;
+					SPI_clk_o 					<= SPI_clk;
 					if (miso_en = '1') then
-						read_reg(0)				<= miso_i;
-						read_reg(7 downto 1) 	<= read_reg(6 downto 0);
-						cntr					<= cntr + 1;
+						miso_buffer(0) 		<= miso_i;
+						miso_buffer(miso_data_length-1 downto 1) 	<= miso_buffer(miso_data_length-2 downto 0);
+						bit_counter 		<= bit_counter + 1;
 					end if;
 					if (mosi_en = '1') then
-						write_reg(7 downto 1) 	<= write_reg(6 downto 0);
+						mosi_buffer(mosi_data_length-1 downto 1) 	<= mosi_buffer(mosi_data_length-2 downto 0);
 					end if;
 				end if;			
- 
-			end if;
- 
-	end case;
- 
-end if;
+ 			end if;
+ 	end case;
+ end if;
 end process P_MAIN;
  
 --------------------------------------------------------------------------------
---    In the SCLK_GEN process, internal sclk signal is generated if sclk_en signal is '1'. 
-P_SCLK_GEN : process (clk_i) begin
-if (rising_edge(clk_i)) then
- 	if (sclk_en = '1') then
-		if edgecntr = c_edgecntrlimdiv2-1 then
-			sclk 		<= not sclk;
-			edgecntr	<= 0;
+--    In the SPI_clk_GEN process, internal SPI_clk signal is generated if SPI_clk_en signal is '1'. 
+P_SPI_clk_GEN : process (system_clk_i) begin
+if (rising_edge(system_clk_i)) then
+ 
+	if (SPI_clk_en = '1') then
+		if system_clk_edgecntr = c_system_clk_edgecntr_target-1 then
+			SPI_clk 		<= not SPI_clk;
+			system_clk_edgecntr	<= 0;
 		else
-			edgecntr	<= edgecntr + 1;
+			system_clk_edgecntr	<= system_clk_edgecntr + 1;
 		end if;	
+	
 	else
-		edgecntr	<= 0;
-		if (c_cpol = '0') then
-			sclk	<= '0';
+		system_clk_edgecntr		<= 0;
+		if (SPI_cpol = '1') then
+			SPI_clk		<= '1';
 		else
-			sclk	<= '1';
+			SPI_clk		<= '0';
 		end if;
 	end if;
- 
-end if;
-end process P_SCLK_GEN;
+ end if;
+end process P_SPI_clk_GEN;
  
 end Behavioral;
