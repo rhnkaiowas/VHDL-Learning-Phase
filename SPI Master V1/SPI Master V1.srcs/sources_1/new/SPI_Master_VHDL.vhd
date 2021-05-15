@@ -63,98 +63,101 @@ generic (
 	miso_data_length	: integer := 8
 );
 Port ( 	
-	system_clk_i 		: in  STD_LOGIC;
-	SPI_en_i 			: in  STD_LOGIC;
+	system_clk_i 		: in  STD_LOGIC; --System clock.
+	SPI_en_i 			: in  STD_LOGIC; --SPI module activate flag from system.
 	
-	mosi_data_i 		: in  STD_LOGIC_VECTOR (mosi_data_length-1 downto 0);
-	miso_data_o 		: out STD_LOGIC_VECTOR (miso_data_length-1 downto 0);
-	miso_data_ready_o 	: out STD_LOGIC;
+	mosi_data_i 		: in  STD_LOGIC_VECTOR (mosi_data_length-1 downto 0); -- Data to be sent to slave.
+	miso_data_o 		: out STD_LOGIC_VECTOR (miso_data_length-1 downto 0); -- Buffered data from slave to the system.
+	miso_data_ready_o 	: out STD_LOGIC; -- Flag: Data has buffered from slave.
 	
-	cs_o 				: out STD_LOGIC;
-	SPI_clk_o 			: out STD_LOGIC;
+	cs_o 				: out STD_LOGIC; -- Chip select pin. Low during communication between master and slave..
+	SPI_clk_o 			: out STD_LOGIC; -- Generated SPI Clock.
 	
-	mosi_o 				: out STD_LOGIC;
-	miso_i 				: in  STD_LOGIC
+	mosi_o 				: out STD_LOGIC; -- Master out Slave in bit.
+	miso_i 				: in  STD_LOGIC  -- Master in Slave out bit.
 );
 end SPI_Master_VHDL;
  architecture Behavioral of SPI_Master_VHDL is
  --------------------------------------------------------------------------------
 -- CONSTANTS
-constant c_system_clk_edgecntr_target	: integer := system_clk_freq/(SPI_clk_freq*2);
+constant c_system_clk_edgecntr_target	: integer := system_clk_freq/(SPI_clk_freq*2); --If system Clock 100Mhz and desired SPI_Clock 1Mhz;
+                                                                                       --SPI_Clock should be notted every 50 rising edge of System_Clock.
  --------------------------------------------------------------------------------
 -- INTERNAL SIGNALS
-signal mosi_buffer			: std_logic_vector (mosi_data_length-1 downto 0) 	:= (others => '0');	
-signal miso_buffer			: std_logic_vector (miso_data_length-1 downto 0) 	:= (others => '0');
+signal mosi_buffer			: std_logic_vector (mosi_data_length-1 downto 0) 	:= (others => '0');	-- Buffer area for data to be sent.
+signal miso_buffer			: std_logic_vector (miso_data_length-1 downto 0) 	:= (others => '0'); -- Buffer area for data from slave.
  
-signal SPI_clk_en			: std_logic := '0';
-signal SPI_clk				: std_logic := '0';
-signal SPI_clk_prev			: std_logic := '0';
-signal SPI_clk_rise			: std_logic := '0';
-signal SPI_clk_fall			: std_logic := '0';
+signal SPI_clk_en			: std_logic := '0'; --Connected to 
+signal SPI_clk				: std_logic := '0'; --Generated SPI clock
+signal SPI_clk_prev			: std_logic := '0'; --The state of Generated SPI clock from previous state.
+signal SPI_clk_rise			: std_logic := '0'; --Generated SPI clock rising edge detected flag.
+signal SPI_clk_fall			: std_logic := '0'; --Generated SPI clock falling edge detected flag.
  
-signal SPI_pol_phase		: std_logic_vector (1 downto 0) := (others => '0');
-signal mosi_en				: std_logic := '0';
-signal miso_en				: std_logic := '0';
-signal miso_got_first_bit   : std_logic := '0';
+signal mosi_en				: std_logic := '0'; --Defines whether Data shifted out from MOSI pin on the rising edge or falling edge.
+signal miso_en				: std_logic := '0'; --Defines whether Data sampled at the MISO pin on the rising edge or falling edge.
+signal miso_got_first_bit   : std_logic := '0'; --Logic '1' after receiving first bit from slave.
  
-signal system_clk_edgecntr	: integer range 0 to c_system_clk_edgecntr_target := 0;
+signal system_clk_edgecntr	: integer range 0 to c_system_clk_edgecntr_target := 0; --System Clock edge count in order to generate SPI Clock.
+                                                                                    --If system Clock 100Mhz and desired SPI_Clock 1Mhz;
+                                                                                    --SPI_Clock should be 'not'ted every 50 rising edge of System_Clock.
+                                                                                    --this means system_clk_freq/(SPI_clk_freq*2)
 signal bit_counter 			: integer range 0 to 15 := 0;
- 
 --------------------------------------------------------------------------------
+
 -- STATE DEFINITIONS
 type states is (S_IDLE, S_TRANSFER);
 signal state : states := S_IDLE;
- 
 --------------------------------------------------------------------------------
---------------------------------------------------------------------------------
---------------------------------------------------------------------------------
+
 begin
- SPI_pol_phase <= SPI_cpol & SPI_cpha;
- --------------------------------------------------------------------------------
--- SAMPLE_EN process assigns mosi_en and miso_en internal signals to SPI_clk_fall or SPI_clk_rise in a combinational logic according to 
--- generic parameters of SPI_cpol and SPI_cpha via SPI_pol_phase signal.
-P_SAMPLE_EN : process (SPI_pol_phase, SPI_clk_fall, SPI_clk_rise) begin
- 	case SPI_pol_phase is
- 		when "00" =>
- 			mosi_en <= SPI_clk_fall;
-			miso_en	<= SPI_clk_rise;
- 		
-		when "01" =>
- 			mosi_en <= SPI_clk_rise;
-			miso_en	<= SPI_clk_fall;		
- 		
-		when "10" =>
- 			mosi_en <= SPI_clk_rise;
-			miso_en	<= SPI_clk_fall;			
- 		
-		when "11" =>
- 			mosi_en <= SPI_clk_fall;
-			miso_en	<= SPI_clk_rise;	
- 		when others =>
- 	end case;
- end process P_SAMPLE_EN;
+--According to generic parameters of SPI_cpol and SPI_cpha;
+--SPI_Mode_Setup process assigns mosi_en and miso_en internal signals to SPI_clk_fall or SPI_clk_rise in a combinational logic via "SPI_pol_phase" signal
+
+SPI_Mode_Setup : process (SPI_clk_fall, SPI_clk_rise) begin
+    if (SPI_cpol = '0') then
+        
+        if (SPI_cpha = '0') then    --SPI Mode 0
+            mosi_en <= SPI_clk_fall; --Data shifted out on the falling edge
+			miso_en	<= SPI_clk_rise; --Data sampled on rising edge
+        
+        elsif (SPI_cpha = '1') then --SPI Mode 1
+            mosi_en <= SPI_clk_rise; --Data shifted out on the rising edge
+			miso_en	<= SPI_clk_fall; --Data sampled on the falling edge
+        end if;
+    
+    elsif (SPI_cpol = '1') then
+        
+        if (SPI_cpha = '0') then    --SPI Mode 2
+            mosi_en <= SPI_clk_rise; --Data shifted out on the rising edge
+			miso_en	<= SPI_clk_fall; --Data sampled on the falling edge	
+        
+        elsif (SPI_cpha = '1') then --SPI Mode 3
+            mosi_en <= SPI_clk_fall; --Data shifted out on the falling edge
+			miso_en	<= SPI_clk_rise; --Data sampled on the rising edge
+        end if;
+    end if;
+ end process SPI_Mode_Setup;
  
 --------------------------------------------------------------------------------
---    RISEFALL_DETECT process assigns SPI_clk_rise and SPI_clk_fall signals in a combinational logic.
-P_RISEFALL_DETECT : process (SPI_clk, SPI_clk_prev) begin
- 	if (SPI_clk = '1' and SPI_clk_prev = '0') then
+RISEFALL_DETECT : process (SPI_clk, SPI_clk_prev) begin
+ 	if (SPI_clk = '1' and SPI_clk_prev = '0') then --If now logic '1' and previous logic '0', that means rising edge detected.
 		SPI_clk_rise <= '1';
 	else
-		SPI_clk_rise <= '0';
+		SPI_clk_rise <= '0'; -- else not a rising edge.
 	end if;
  
-	if (SPI_clk = '0' and SPI_clk_prev = '1') then
+	if (SPI_clk = '0' and SPI_clk_prev = '1') then --If now logic '0' and previous logic '1', that means falling edge detected.
 		SPI_clk_fall <= '1';
 	else
-		SPI_clk_fall <= '0';
+		SPI_clk_fall <= '0'; -- else not a falling edge.
 	end if;	
- end process P_RISEFALL_DETECT;
+ end process RISEFALL_DETECT;
  --------------------------------------------------------------------------------
 --In the MAIN process S_IDLE and S_TRANSFER states are implemented. 
 --State changes from S_IDLE to S_TRANSFER when SPI_en_i input signal has the logic high value. 
 --At S_TRANSFER cycle, mosi_buffer signal is assigned to mosi_data_i input signal. 
 
-P_MAIN : process (system_clk_i) begin
+MAIN : process (system_clk_i) begin
 if (rising_edge(system_clk_i)) then
  
     miso_data_ready_o <= '0';
@@ -167,7 +170,7 @@ if (rising_edge(system_clk_i)) then
  			cs_o				<= '1';
 			mosi_o				<= '0';
 			miso_data_ready_o	<= '0';			
-			SPI_clk_en				<= '0';
+			SPI_clk_en			<= '0';
 			bit_counter			<= 	0; 
  
 			if (SPI_cpol = '0') then
@@ -178,7 +181,7 @@ if (rising_edge(system_clk_i)) then
  
 			if (SPI_en_i = '1') then
 				state			<= S_TRANSFER;
-				SPI_clk_en			<= '1';
+				SPI_clk_en		<= '1';
 				mosi_buffer		<= mosi_data_i;
 				mosi_o			<= mosi_data_i(mosi_data_length-1);
 				miso_buffer		<= x"00";
@@ -189,8 +192,7 @@ if (rising_edge(system_clk_i)) then
 			mosi_o	<= mosi_buffer(mosi_data_length-1);
   
 			if (SPI_cpha = '1') then	
- 
-				if (bit_counter = 0) then
+ 				if (bit_counter = 0) then
 					SPI_clk_o	<= SPI_clk;
 					if (miso_en = '1') then
 						miso_buffer(0)		<= miso_i;
@@ -201,10 +203,11 @@ if (rising_edge(system_clk_i)) then
 				
 				elsif (bit_counter = miso_data_length) then
 				    if (miso_got_first_bit = '1') then
-				        miso_data_ready_o	<= '1';
-				        miso_got_first_bit   	<= '0';				       
+				        miso_data_ready_o   <= '1';
+				        miso_got_first_bit  <= '0';				       
 				    end if;					
 					miso_data_o		<= miso_buffer;
+					
 					if (mosi_en = '1') then
 						if (SPI_en_i = '1') then
 							mosi_buffer		<= mosi_data_i;
@@ -230,6 +233,7 @@ if (rising_edge(system_clk_i)) then
 						miso_buffer(miso_data_length-1 downto 1) 	<= miso_buffer(miso_data_length-2 downto 0);
 						bit_counter			<= bit_counter + 1;
 					end if;
+					
 					if (mosi_en = '1') then
 						mosi_o				<= mosi_buffer(mosi_data_length-1);
 						mosi_buffer(mosi_data_length-1 downto 1) 	<= mosi_buffer(mosi_data_length-2 downto 0);
@@ -253,6 +257,7 @@ if (rising_edge(system_clk_i)) then
                     end if;
 					miso_data_o				<= miso_buffer;
 					SPI_clk_o					<= SPI_clk;
+					
 					if (mosi_en = '1') then
 						if (SPI_en_i = '1') then
 							mosi_buffer		<= mosi_data_i;
@@ -261,6 +266,7 @@ if (rising_edge(system_clk_i)) then
 						else
 							bit_counter 	<= bit_counter + 1;
 						end if;	
+						
 						if (miso_en = '1') then
 							state 			<= S_IDLE;
 							cs_o 			<= '1';							
@@ -275,11 +281,13 @@ if (rising_edge(system_clk_i)) then
 				
 				else
 					SPI_clk_o 					<= SPI_clk;
+					
 					if (miso_en = '1') then
 						miso_buffer(0) 		<= miso_i;
 						miso_buffer(miso_data_length-1 downto 1) 	<= miso_buffer(miso_data_length-2 downto 0);
 						bit_counter 		<= bit_counter + 1;
 					end if;
+					
 					if (mosi_en = '1') then
 						mosi_buffer(mosi_data_length-1 downto 1) 	<= mosi_buffer(mosi_data_length-2 downto 0);
 					end if;
@@ -287,13 +295,12 @@ if (rising_edge(system_clk_i)) then
  			end if;
  	end case;
  end if;
-end process P_MAIN;
+end process MAIN;
  
 --------------------------------------------------------------------------------
 --    In the SPI_clk_GEN process, internal SPI_clk signal is generated if SPI_clk_en signal is '1'. 
-P_SPI_clk_GEN : process (system_clk_i) begin
+SPI_clk_GEN : process (system_clk_i) begin
 if (rising_edge(system_clk_i)) then
- 
 	if (SPI_clk_en = '1') then
 		if system_clk_edgecntr = c_system_clk_edgecntr_target-1 then
 			SPI_clk 		<= not SPI_clk;
@@ -304,6 +311,7 @@ if (rising_edge(system_clk_i)) then
 	
 	else
 		system_clk_edgecntr		<= 0;
+		
 		if (SPI_cpol = '1') then
 			SPI_clk		<= '1';
 		else
@@ -311,6 +319,6 @@ if (rising_edge(system_clk_i)) then
 		end if;
 	end if;
  end if;
-end process P_SPI_clk_GEN;
+end process SPI_clk_GEN;
  
 end Behavioral;
